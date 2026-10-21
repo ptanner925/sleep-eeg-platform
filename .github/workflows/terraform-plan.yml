@@ -1,0 +1,43 @@
+name: terraform-plan
+
+on:
+  pull_request:
+    paths: ["infra/**", ".github/workflows/terraform-plan.yml"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # OIDC to Entra ID, no stored secrets (ADR-002)
+  contents: read
+  pull-requests: write
+
+env:
+  ARM_USE_OIDC: "true"
+  ARM_USE_AZUREAD: "true"
+  ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  TF_VAR_subscription_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/envs/dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: fmt
+        run: terraform fmt -check -recursive ../..
+      - name: init
+        run: >
+          terraform init
+          -backend-config="resource_group_name=rg-tfstate"
+          -backend-config="storage_account_name=${{ vars.TFSTATE_SA }}"
+          -backend-config="container_name=tfstate"
+          -backend-config="key=dev.tfstate"
+          -backend-config="use_azuread_auth=true"
+      - name: validate
+        run: terraform validate
+      - name: plan
+        run: terraform plan -no-color -input=false

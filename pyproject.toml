@@ -1,0 +1,14 @@
+[project]
+name = "sleep-eeg-platform"
+version = "0.0.1"
+description = "Clinical sleep-study data platform on Azure + Databricks (capstone)"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = ["ruff", "pre-commit"]
+signal = ["mne", "pyedflib", "numpy", "scipy", "pandas", "xlrd"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

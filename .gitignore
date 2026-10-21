@@ -1,0 +1,41 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+backend.hcl
+*.auto.tfvars
+terraform.tfvars
+.terraform.lock.hcl.bak
+
+# Data (never commit source recordings)
+data/*
+!data/README.md
+!data/release_manifest.csv
+
+# Python
+__pycache__/
+.venv/
+*.pyc
+.ruff_cache/
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# Airflow / Astro
+airflow/logs/
+airflow/.astro/
+airflow/airflow_settings.yaml
+
+# Databricks
+.databricks/
+
+# Secrets
+.env
+*.pem
+
+# OS
+.DS_Store
