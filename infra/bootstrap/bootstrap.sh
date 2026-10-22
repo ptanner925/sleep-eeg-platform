@@ -24,7 +24,10 @@ echo "Subscription: $SUB_ID  Location: $LOCATION  Storage account: $SA"
 az storage account create -n "$SA" -g "$RG" -l "$LOCATION" \
   --sku Standard_LRS --kind StorageV2 --min-tls-version TLS1_2 \
   --allow-blob-public-access false --allow-shared-key-access false -o none
-az storage account blob-service-properties update -n "$SA" -g "$RG" --enable-versioning true -o none
+# Versioning covers overwrites; soft delete covers deleted blobs and a deleted container.
+az storage account blob-service-properties update -n "$SA" -g "$RG" --enable-versioning true \
+  --enable-delete-retention true --delete-retention-days 14 \
+  --enable-container-delete-retention true --container-delete-retention-days 14 -o none
 
 SA_ID="$(az storage account show -n "$SA" -g "$RG" --query id -o tsv)"
 if [[ -z "$(az role assignment list --assignee "$ME" --role "$ROLE" --scope "$SA_ID" --query '[0].id' -o tsv)" ]]; then
@@ -42,6 +45,11 @@ for attempt in $(seq 1 20); do
   fi
   echo "Waiting for role assignment to propagate (attempt $attempt/20)..."; sleep 15
 done
+
+# Refuse deletes of the state RG and everything in it; reads and state writes still work.
+# Creating a lock that already exists just updates it, so reruns are fine.
+az lock create --name no-delete --lock-type CanNotDelete --resource-group "$RG" \
+  --notes "Terraform state: remove only when tearing down the whole project" -o none
 
 cat > "$HERE/../backend.hcl" <<HCL
 resource_group_name  = "$RG"
