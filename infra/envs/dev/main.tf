@@ -4,6 +4,7 @@ locals {
     owner     = var.owner
     env       = "dev"
     lifecycle = "ephemeral" # destroyed by `make down` every session
+    purpose   = "capstone"
   }
 }
 

@@ -164,8 +164,12 @@ APP_ID=$(az ad app create --display-name gh-$REPO --query appId -o tsv)
 az ad sp create --id $APP_ID
 
 # trust GitHub tokens for PRs and for the main branch
-az ad app federated-credential create --id $APP_ID --parameters "{\"name\":\"gh-pr\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"repo:$GH_USER/$REPO:pull_request\",\"audiences\":[\"api://AzureADTokenExchange\"]}"
-az ad app federated-credential create --id $APP_ID --parameters "{\"name\":\"gh-main\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"repo:$GH_USER/$REPO:ref:refs/heads/main\",\"audiences\":[\"api://AzureADTokenExchange\"]}"
+# GitHub's subject prefix includes immutable owner/repo IDs (repo:<owner>@<id>/<repo>@<id>), so a
+# deleted or renamed repo can't be recreated under the same name to inherit this trust. Ask GitHub
+# for the exact prefix rather than typing it. Keep the braces: in zsh, $SUB_PREFIX:ref would apply the :r modifier.
+SUB_PREFIX=$(gh api repos/${GH_USER}/${REPO}/actions/oidc/customization/sub --jq .sub_claim_prefix); echo $SUB_PREFIX
+az ad app federated-credential create --id $APP_ID --parameters "{\"name\":\"gh-pr\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"${SUB_PREFIX}:pull_request\",\"audiences\":[\"api://AzureADTokenExchange\"]}"
+az ad app federated-credential create --id $APP_ID --parameters "{\"name\":\"gh-main\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"${SUB_PREFIX}:ref:refs/heads/main\",\"audiences\":[\"api://AzureADTokenExchange\"]}"
 
 # least privilege for plan: read the subscription, read/write state (lock lease)
 az role assignment create --assignee $APP_ID --role Reader --scope /subscriptions/$SUB_ID
