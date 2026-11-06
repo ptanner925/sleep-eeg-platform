@@ -164,8 +164,9 @@ APP_ID=$(az ad app create --display-name gh-$REPO --query appId -o tsv)
 az ad sp create --id $APP_ID
 
 # trust GitHub tokens for PRs and for the main branch
-az ad app federated-credential create --id $APP_ID --parameters "{\"name\":\"gh-pr\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"repo:$GH_USER/$REPO:pull_request\",\"audiences\":[\"api://AzureADTokenExchange\"]}"
-az ad app federated-credential create --id $APP_ID --parameters "{\"name\":\"gh-main\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"repo:$GH_USER/$REPO:ref:refs/heads/main\",\"audiences\":[\"api://AzureADTokenExchange\"]}"
+# keep the braces: in zsh, $REPO:ref is read as $REPO with the :r modifier, giving "...platformef:refs/..."
+az ad app federated-credential create --id $APP_ID --parameters "{\"name\":\"gh-pr\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"repo:${GH_USER}/${REPO}:pull_request\",\"audiences\":[\"api://AzureADTokenExchange\"]}"
+az ad app federated-credential create --id $APP_ID --parameters "{\"name\":\"gh-main\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"repo:${GH_USER}/${REPO}:ref:refs/heads/main\",\"audiences\":[\"api://AzureADTokenExchange\"]}"
 
 # least privilege for plan: read the subscription, read/write state (lock lease)
 az role assignment create --assignee $APP_ID --role Reader --scope /subscriptions/$SUB_ID
